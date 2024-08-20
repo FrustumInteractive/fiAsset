@@ -22,6 +22,7 @@ Asset::Asset(const std::string &path)
 		{
 			FileInfo info;
 			fread(&info.strSz, sizeof(info.strSz), 1, m_filePtr);
+			if (info.strSz > m_longestPathLength) {	m_longestPathLength = info.strSz; }
 			char *str = new char[info.strSz+1];
 			memset(str, 0, info.strSz+1); // zero whole field and null terminator a the end
 			fread(str, info.strSz, 1, m_filePtr);
@@ -85,6 +86,7 @@ void Asset::add(const std::string &path)
 	m_fileList.push_back(info);
 
 	fclose(fp);
+	if (info.strSz > m_longestPathLength) {m_longestPathLength = info.strSz;}
 }
 
 size_t Asset::read(uint8_t *buf)
@@ -132,25 +134,15 @@ size_t Asset::write(const std::string &path)
 	return bytesWritten;
 }
 
-FILE *Asset::file()
-{
-	return m_filePtr;
-}
+FILE *Asset::file() { return m_filePtr; }
 
-long Asset::offset()
-{
-	return m_currentFileInfo.offset;
-}
+long Asset::offset() { return m_currentFileInfo.offset; }
 
-long Asset::size()
-{
-	return m_currentFileInfo.size;
-}
+long Asset::size() { return m_currentFileInfo.size; }
 
-std::string Asset::path()
-{
-	return m_currentFileInfo.path;
-}
+size_t Asset::longestPathLength() {	return m_longestPathLength; }
+
+std::string Asset::path() {	return m_currentFileInfo.path; }
 
 std::vector<std::string> Asset::list()
 {
@@ -160,6 +152,11 @@ std::vector<std::string> Asset::list()
 		out.push_back(fileInfo.path);
 	}
 	return out;
+}
+
+const std::vector<Asset::FileInfo>& Asset::fileInfoList()
+{
+	return m_fileList;
 }
 
 

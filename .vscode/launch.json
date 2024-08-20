@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceRoot}/test/fipack",
-            "args": ["-e", "ext/", "test.fas"], //["-o", "test.fas", "assets/"], //["-e", "ext/", "test.fas"],
+            "args": ["-i", "test.fas"], //["-o", "test.fas", "assets/"], //["-e", "ext/", "test.fas"],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}/test",
             "environment": [],

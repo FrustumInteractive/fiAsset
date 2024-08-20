@@ -18,18 +18,46 @@ void removeTrailingSlash(std::string &str)
 	}
 }
 
+// Function to append sufficient tabs based on the previous text's length
+// and the desired field size
+std::string strcell(const std::string& text, int fieldSize)
+{
+	int length = text.length();
+
+	// Determine if truncation is needed
+	if (length > fieldSize) {
+		// Truncate the text to fit the field size exactly
+		return text.substr(0, fieldSize);
+	}
+
+	int totalSpaceNeeded = fieldSize - length;  // Calculate the needed spacing
+
+	// Construct the string with tabs and additional spaces if necessary
+	return text + std::string(totalSpaceNeeded, ' ');
+}
+
 int main(int argc, char *argv[])
 {
 	FI::Asset asset; // for one-by-one manaully adding individual files to it
 	std::string fname = "package.fas";
 	std::string extractPath="extracted";
-	bool isExtractMode = false;
+
+	enum Operation
+	{
+		HELP_MODE,
+		INFO_MODE,
+		EXTRACT_MODE,
+		PACK_MODE
+	};
+
+	Operation mode = PACK_MODE;
 
 	enum ArgType // <0 is switch, >0 has val that follows, 0 no op.
 	{
 		TEST = -2,
 		HELP,
 		NONE,
+		INFO,
 		OUTPUT,
 		EXTRACT
 	};
@@ -38,17 +66,17 @@ int main(int argc, char *argv[])
 	{
 		{"-o", OUTPUT},
 		{"-e", EXTRACT},
+		{"-i", INFO},
 		{"-t", TEST},
 		{"-h", HELP}
 	};
 
 	FI::UTIL::processCmdLineArgs(argc, argv, argMap, [&](int arg, std::string str)
 	{
-		bool showHelp = false;
 		switch (arg)
 		{
 			case HELP:
-				showHelp = true;
+				mode = HELP_MODE;
 				break;
 
 			case OUTPUT:
@@ -56,10 +84,15 @@ int main(int argc, char *argv[])
 				break;
 
 			case EXTRACT:
-				isExtractMode = true;
+				mode = EXTRACT_MODE;
 				std::filesystem::create_directory(str);
 				removeTrailingSlash(str);
 				extractPath = str + "/";
+				break;
+
+			case INFO:
+				mode = INFO_MODE;
+				asset = FI::Asset(str);
 				break;
 
 			case TEST:
@@ -68,9 +101,10 @@ int main(int argc, char *argv[])
 			case NONE:
 				if (str == FI_CMD_OPT_NONE)
 				{
-					showHelp = true;
+					mode = HELP_MODE;
 					break;
 				}
+
 				// input file specified
 				// check if path or dir
 				struct stat s;
@@ -79,28 +113,24 @@ int main(int argc, char *argv[])
 					if (s.st_mode & S_IFDIR)
 					{
 						// it's a directory
-						if (isExtractMode)
+						if (mode == EXTRACT_MODE)
 						{
 							FI::LOG("error: cannot extract directories.");
-							showHelp = true;
+							mode = HELP_MODE;
 							break;
 						}
 						// remove trailing slash if its there
 						removeTrailingSlash(str);
-						std::vector<std::string> files;
+
 						FI::UTIL::listFiles(str, [&](const std::string &p)
 						{
-							files.push_back(p);
+							asset.add(p); // rebuild relative path
 						});
-						for (auto &file : files)
-						{
-							asset.add(file); // rebuild relative path
-						}
 					}
 					else if (s.st_mode & S_IFREG)
 					{
 						// it's a file
-						if (isExtractMode)
+						if (mode == EXTRACT_MODE)
 						{
 							// input is an asset package to extract
 							FI::Asset _asset(str); // let's use a different, isolated asset instance here
@@ -154,19 +184,52 @@ int main(int argc, char *argv[])
 				}
 				break;
 		}
-
-		if (showHelp)
-		{
-			FI::PRINT("\nfipack: a tool for packaging multiple assets together in one file.");
-			FI::PRINT("\tusage: fipack -<options> value infile1 infile2..infileN");
-			FI::PRINT("\toptions: \n\t-o output file name\n");
-			exit(0);
-		}
 	});
 
-	if (!isExtractMode)
+	FI::PRINT("\nfipack: a tool for packaging multiple assets together in one file.");
+	FI::PRINT("C Frustum Interactive 2024");
+
+	switch (mode)
 	{
-		asset.write(fname);
+		case HELP_MODE:
+			FI::PRINT("\nfipack: a tool for packaging multiple assets together in one file.");
+			FI::PRINT("\tusage: fipack <options> value infile1 infile2..infileN");
+			FI::PRINT("\toptions: \n\t\t-o <file> output packed archive filename.");
+			FI::PRINT("\t\t-e <path> extract all packed files to specified path.");
+			FI::PRINT("\t\t-i display contents info of packed input file.");
+			FI::PRINT("\n");
+			break;
+
+		case INFO_MODE:
+			// input is an asset package to display info about
+			{
+				std::string header = "\t | " + strcell("Path:", asset.longestPathLength()+1) + "| " + strcell("Offset:", 10) + "| " + strcell("Size:", 10) + "|";
+				std::string sep = "\t |" + std::string(header.length()-4, '-') + "|"; // subtract to account for spaces inserted by PRINT 
+				
+				FI::PRINT("\npackage contents:\n");
+				FI::PRINT(sep);
+				FI::PRINT(header);
+				FI::PRINT(sep);
+				for (const auto& fileInfo : asset.fileInfoList())
+				{
+					auto entry = "| " + strcell(fileInfo.path, asset.longestPathLength()+1);
+					entry += "| " + strcell(std::to_string(fileInfo.offset), 10) + "| " + strcell(std::to_string(fileInfo.size), 10) + "|";
+					FI::PRINT("\t", entry);
+				}
+				FI::PRINT(sep);
+				FI::PRINT("");
+			}
+			break;
+
+		case EXTRACT_MODE:
+			break;
+		
+		case PACK_MODE:
+			asset.write(fname);
+			break;
+
+		default:
+			break;
 	}
 
 	return 0;

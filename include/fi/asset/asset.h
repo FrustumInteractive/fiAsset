@@ -9,6 +9,16 @@ namespace FI {
 class Asset
 {
 public:
+
+	struct FileInfo
+	{
+		uint64_t strSz = 0;
+		std::string path;
+		uint64_t
+			offset = 0,
+			size = 0;
+	};
+
 	Asset();   // create asset package mode
 	Asset(const std::string &path);    // we're in load asset package mode; use add() to populate
 	virtual ~Asset();
@@ -25,20 +35,14 @@ public:
 
 	long offset();   // offset in bytes of current file
 	long size();     // size in bytes of current file
+	size_t longestPathLength(); // util for longest path len
 
 	std::string path(); // path of current file
 
-	std::vector<std::string> list(); // get list of files in the asset package
+	std::vector<std::string> list();     // get list of files in the asset package
+	const std::vector<FileInfo>& fileInfoList(); // get detailed FileInfo for each file
 
 private:
-	struct FileInfo
-	{
-		uint64_t strSz = 0;
-		std::string path;
-		uint64_t
-			offset = 0,
-			size = 0;
-	};
 
 	struct FileHeader
 	{
@@ -54,6 +58,8 @@ private:
 	std::string m_path;             // path of (ex. '*.fas') file that is the asset package
 	FILE *m_filePtr = nullptr;
 	std::vector<uint8_t> m_buffer;  // raw data buffer to pack files into
+
+	size_t m_longestPathLength = 0;
 };
 
 
