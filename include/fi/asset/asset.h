@@ -29,7 +29,7 @@ public:
 
 	size_t read(uint8_t *buffer);           // read data to provided buffer for current found file
 
-	size_t write(const std::string &path);  // write out combined faile asset package
+	size_t write(const std::string &path);  // write out combined file asset package
 
 	FILE *file();    // get C file pointer
 

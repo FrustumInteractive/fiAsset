@@ -188,6 +188,8 @@ int main(int argc, char *argv[])
 
 	FI::PRINT("\nfipack: a tool for packaging multiple assets together in one file.");
 	FI::PRINT("C Frustum Interactive 2024");
+	std::string header = "\t | " + strcell("Path:", asset.longestPathLength()+1) + "| " + strcell("Offset:", 10) + "| " + strcell("Size:", 10) + "|";
+	std::string sep = "\t |" + std::string(header.length()-4, '-') + "|"; // subtract to account for spaces inserted by PRINT 
 
 	switch (mode)
 	{
@@ -202,23 +204,18 @@ int main(int argc, char *argv[])
 
 		case INFO_MODE:
 			// input is an asset package to display info about
+			FI::PRINT("\npackage contents:\n");
+			FI::PRINT(sep);
+			FI::PRINT(header);
+			FI::PRINT(sep);
+			for (const auto& fileInfo : asset.fileInfoList())
 			{
-				std::string header = "\t | " + strcell("Path:", asset.longestPathLength()+1) + "| " + strcell("Offset:", 10) + "| " + strcell("Size:", 10) + "|";
-				std::string sep = "\t |" + std::string(header.length()-4, '-') + "|"; // subtract to account for spaces inserted by PRINT 
-				
-				FI::PRINT("\npackage contents:\n");
-				FI::PRINT(sep);
-				FI::PRINT(header);
-				FI::PRINT(sep);
-				for (const auto& fileInfo : asset.fileInfoList())
-				{
-					auto entry = "| " + strcell(fileInfo.path, asset.longestPathLength()+1);
-					entry += "| " + strcell(std::to_string(fileInfo.offset), 10) + "| " + strcell(std::to_string(fileInfo.size), 10) + "|";
-					FI::PRINT("\t", entry);
-				}
-				FI::PRINT(sep);
-				FI::PRINT("");
+				auto entry = "| " + strcell(fileInfo.path, asset.longestPathLength()+1);
+				entry += "| " + strcell(std::to_string(fileInfo.offset), 10) + "| " + strcell(std::to_string(fileInfo.size), 10) + "|";
+				FI::PRINT("\t", entry);
 			}
+			FI::PRINT(sep);
+			FI::PRINT("");
 			break;
 
 		case EXTRACT_MODE:
